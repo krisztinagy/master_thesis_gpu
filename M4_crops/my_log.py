@@ -5,7 +5,7 @@ import datetime
 
 def training_header():
 
-    directory = cfg.directory['results'] + '/' + cfg.model['model_import']
+    directory = cfg.directory['results'] + '/' + cfg.model['model_dir']
     if not os.path.exists(directory):
         os.makedirs(directory)
         
@@ -16,7 +16,9 @@ def training_header():
     f.write('Batch size: %d\n' % (cfg.hyperparameters['batch_size']))
     f.write('Image size: %d * %d * %d\n' % (cfg.image['height'], cfg.image['width'], cfg.image['channels']))
     f.write('Model: %s\n' % (cfg.model['model_import']))
+    f.write('Ratio of dataset used for training: %s\n' % (cfg.dataset['percentage_to_use']))
     f.write('Loss function: %s\n\n' % (cfg.model['loss_function_import']))
+    f.write('Number of epochs: %s\n' % (cfg.hyperparameters['num_epochs']))
     f.write('Started: %s (GMT)\n\n' % str(datetime.datetime.now()))
     f.close()
     
@@ -34,7 +36,7 @@ def training_header():
     
 def testing_header():
     
-    directory = cfg.directory['results'] + '/' + cfg.model['model_import']
+    directory = cfg.directory['results'] + '/' + cfg.model['model_dir']
     if not os.path.exists(directory):
         os.makedirs(directory)
         
@@ -49,9 +51,9 @@ def testing_header():
     
     return directory, datetime.datetime.now()
     
-def logging_step(log_dir, step, loss, last_checkpoint):
+def logging_step(log_dir, step, loss, error, last_checkpoint):
     f = open(log_dir + '/log_train', 'a+')
-    f.write('%s (GMT) Smoothed loss in current step %d (overall step %d): %.6f\n' % (str(datetime.datetime.now()), step, step+last_checkpoint, loss))
+    f.write('%s (GMT) Step %d (overall %d): Smoothed loss %.6f, Smoothed error: %.3f\n' % (str(datetime.datetime.now()), step, step+last_checkpoint, loss, error))
     f.close
     
     g = open(log_dir + '/last_checkpoint', 'w')
@@ -78,7 +80,7 @@ def testing_footer(log_dir, start_time):
     
     f.close
     
-def loss_log(log_dir, iteration, step_loss, smoothed_loss):
+def loss_log(log_dir, iteration, step_loss, smoothed_loss, smoothed_error):
     f = open(log_dir + '/losses', 'a+')
-    f.write('%d,%.6f,%.6f\n' % (iteration, step_loss, smoothed_loss))
+    f.write('%d,%.6f,%.6f,%.6f\n' % (iteration, step_loss, smoothed_loss, smoothed_error))
     f.close

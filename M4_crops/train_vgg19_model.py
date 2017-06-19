@@ -36,7 +36,7 @@ flags.DEFINE_integer('num_classes', cfg.dataset['num_categories'], 'Number of cl
 flags.DEFINE_integer('num_threads', cfg.hyperparameters['num_threads'], 'Number of threads')
 
 flags.DEFINE_string('results_dir', cfg.directory['results'] + '/', 'Directory with the training data.')
-flags.DEFINE_string('model_dir', cfg.model['model_import'] + '/', 'Directory for storing model and results')
+flags.DEFINE_string('model_dir', cfg.model['model_dir'] + '/', 'Directory for storing model and results')
 flags.DEFINE_string('tensorboard_dir', cfg.directory['tensorboard'], 'Data directory for storing tensorboard logs')
 
 flags.DEFINE_string('tfrecords_train_dir', cfg.directory['tfrecords_train'], 'Data directory for storing tfRecords')
@@ -105,11 +105,15 @@ def inputs(train, batch_size, num_epochs):
   
   record_dir = FLAGS.tfrecords_train_dir if train else FLAGS.tfrecords_test_dir
   
+  all_files = []
   files = []
   
   for file in os.listdir(record_dir):
     file_path = os.path.join(record_dir, file)
-    files.append(file_path)
+    all_files.append(file_path)
+  
+  for i in range( int( len(all_files) * cfg.dataset['percentage_to_use'])):
+    files.append(all_files[i])
 
   with tf.name_scope('input'):
     filename_queue = tf.train.string_input_producer(files, num_epochs=num_epochs)
@@ -195,6 +199,10 @@ def run_training(log_dir, last_checkpoint):
         train_op, loss = loss_function.training_graph(logits, labels_placeholder, FLAGS.learning_rate)
         tf.summary.scalar("Loss", loss)
         
+        #create eval op to test while training
+        eval_op_values, eval_op_indices = tf.nn.top_k(logits)
+        #tf.summary.scalar("Prediction", eval_op_indices)
+        
         folder = FLAGS.results_dir + FLAGS.model_dir + FLAGS.tensorboard_dir
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -232,7 +240,11 @@ def run_training(log_dir, last_checkpoint):
         
         #variable for tracking losses - to be displayed in losses.png
         losses = []
+        errors = []
         smoothed_losses = [None] * 100
+        smoothed_errors = [None] * 100
+        
+        start_time = datetime.datetime.now()
         
         # Start input enqueue threads.
         coord = tf.train.Coordinator()
@@ -244,24 +256,30 @@ def run_training(log_dir, last_checkpoint):
         last_loss = 1
         try:
             while not coord.should_stop():
-                start_time = datetime.datetime.now()
                 
                 image, label = sess.run([images, labels])
                     
                 # Calculate loss
-                _, loss_value, summary = sess.run([train_op, loss, merged_summaries], feed_dict={images_placeholder: image, labels_placeholder:label})
+                _, loss_value, prediction, summary = sess.run([train_op, loss, eval_op_indices, merged_summaries], feed_dict={images_placeholder: image, labels_placeholder:label})
                 last_loss = loss_value
+                
+                # Calculate prediction error
+                prediction = prediction.flatten()
+                abs_error = np.absolute(label - prediction) / FLAGS.batch_size
+                error_value = np.sum(abs_error)
                 
                 # Logging information
                 losses.append(loss_value)
+                errors.append(error_value)
                 writer.add_summary(summary, iteration)
                 
                 # Stats
                 smoothed_losses[iteration % 100] = loss_value
+                smoothed_errors[iteration % 100] = error_value
                 duration = datetime.datetime.now() - start_time
                 
                 # Print overview
-                print("Iteration: %d, Loss:%.6f" % (iteration, loss_value))
+                print("Iteration: %d, Loss: %.6f, Absulute error: %.3f" % (iteration, loss_value, error_value))
                 
                 if iteration == 100:
                     duration = datetime.datetime.now() - start_time
@@ -271,7 +289,8 @@ def run_training(log_dir, last_checkpoint):
                 if iteration % 100 == 0 and not iteration == 0:
                     
                     smoothed_loss = np.sum(smoothed_losses) / 100
-                    mylog.loss_log(log_dir, iteration, loss_value, smoothed_loss ) 
+                    smoothed_error = np.sum(smoothed_errors) / 100
+                    mylog.loss_log(log_dir, iteration, loss_value, smoothed_loss, smoothed_error ) 
                 
                 if iteration % 1000 == 0 and not iteration == 0:
 
@@ -281,14 +300,16 @@ def run_training(log_dir, last_checkpoint):
                     print("Finished saving checkpoint")
                     
                     smoothed_loss = np.sum(smoothed_losses) / 100
-                    mylog.logging_step(log_dir, iteration, smoothed_loss, last_checkpoint)
+                    smoothed_error = np.sum(smoothed_errors) / 100
+                    mylog.logging_step(log_dir, iteration, smoothed_loss, smoothed_error, last_checkpoint)
 
                 iteration += 1
                 
         except tf.errors.OutOfRangeError:
             print('Done training for %d epochs, %d iterations.' % (FLAGS.num_epochs, iteration))
-            f.write('Done training for %d epochs, %d iterations.\n' % (FLAGS.num_epochs, iteration))
-            f.write('Final loss value: %.3f\n' % (last_loss))
+            mylog.logging_general( log_dir, 'log_train', 'Done training for %d epochs, %d iterations.\n' % (FLAGS.num_epochs, iteration))
+            mylog.logging_general( log_dir, 'log_train', 'Final smoothed loss: %.6f\nFinal smoothed error: %.6f\n' % (smoothed_loss, smoothed_error))
+
         finally:
             coord.request_stop()
         

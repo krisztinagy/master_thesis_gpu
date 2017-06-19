@@ -36,7 +36,7 @@ flags.DEFINE_integer('num_classes', cfg.dataset['num_categories'], 'Number of cl
 flags.DEFINE_integer('num_threads', cfg.hyperparameters['num_threads'], 'Number of threads')
 
 flags.DEFINE_string('results_dir', cfg.directory['results'] + '/', 'Directory with the training data.')
-flags.DEFINE_string('model_dir', cfg.model['model_import'] + '/', 'Directory for storing model and results')
+flags.DEFINE_string('model_dir', cfg.model['model_dir'] + '/', 'Directory for storing model and results')
 flags.DEFINE_string('tensorboard_dir', cfg.directory['tensorboard'], 'Data directory for storing tensorboard logs')
 
 flags.DEFINE_string('tfrecords_train_dir', cfg.directory['tfrecords_train'], 'Data directory for storing tfRecords')
@@ -105,12 +105,16 @@ def inputs(train, batch_size, num_epochs):
   
   record_dir = FLAGS.tfrecords_train_dir if train else FLAGS.tfrecords_test_dir
   
+  all_files = []
   files = []
   
   for file in os.listdir(record_dir):
     file_path = os.path.join(record_dir, file)
-    files.append(file_path)
+    all_files.append(file_path)
 
+  for i in range( int( len(all_files) * cfg.dataset['percentage_to_use'])):
+    files.append(all_files[i])
+    
   with tf.name_scope('input'):
     filename_queue = tf.train.string_input_producer(files, num_epochs=num_epochs)
 
