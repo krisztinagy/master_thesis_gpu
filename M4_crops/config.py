@@ -10,6 +10,9 @@ dataset = dict(
 	label1_folder = 'label1',
     percentage_to_use = 1
 )
+testing = dict(
+    crop_percentage = 0.8,
+)
 
 model = dict(
 	vgg19_pretrained = '/pqry/pqry/data/vgg19.npy',
@@ -19,9 +22,9 @@ model = dict(
 )
 
 directory = dict(
-	tfrecords_train = '/pqry/pqry/data/tfrecords/train',
-	tfrecords_test = '/pqry/pqry/data/tfrecords/test',
-	results = '/pqry/pqry/results',
+	tfrecords_train = '/pqry/pqry/data/tfrecords_3slots/train',
+	tfrecords_test = '/pqry/pqry/data/tfrecords_3slots/test',
+	results = '/pqry/pqry/results_3slots',
     tensorboard = 'tensorboard_logs',
 )
 
