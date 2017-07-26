@@ -276,8 +276,9 @@ def _find_image_files(data_dir):
   label_index = 1
     
   # Construct the list of JPEG files and labels.
-  for i in range(cfg.dataset['num_categories']):
-    jpeg_file_path = '%s/%s/*' % (data_dir, cfg.dataset['label' + str(i) + '_folder'])
+  # for i in range(cfg.dataset['num_categories']):
+  for i in ['000', '001', '010', '011', '100', '101', '110', "111"]:
+    jpeg_file_path = '%s/%s/*' % (data_dir, cfg.dataset['label' + i + '_folder'])
     matching_files = tf.gfile.Glob(jpeg_file_path)
 
     labels.extend([label_index] * len(matching_files))

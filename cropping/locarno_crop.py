@@ -62,11 +62,16 @@ testing_crops = 0
 dates = sorted(os.listdir( cfg.dir['full_images'] ))
 print('Content of dir %s:' % (cfg.dir['full_images']) )
 print(dates)
+
+dates = ['170321', '170322', '170323', '170324', '170325', '170326', '170327', '170328', '170329', '170330',
+        '170331', ]
+
 for date in dates:
     imagefiles = sorted(os.listdir(os.path.join( cfg.dir['full_images'], date )))
     print('Found %d images in dir %s.' % (len(imagefiles), str(date)))
     for imagefile in imagefiles:
         orig_img = Image.open(os.path.join( cfg.dir['full_images'], date, imagefile ))
+        print('Processing image %s' % str(imagefile))
         for spot in data['spots']:
         
             rand = random.random()
@@ -110,7 +115,6 @@ for date in dates:
                     bottom = int(data['spots'][str(spot)]['roi_rel']['height']*h) + top
                     img = img.crop((left, top, right, bottom))
                     path = os.path.join( train_or_test, label, slot + '_' + imagefile)
-                    #print(path)
             
                     img.save(path)
 

@@ -8,13 +8,14 @@ dataset = dict(
 
  )
 dir = dict(
-    data = '/pqry/data',
-    crops = '/pqry/data/117_amneville_cropped',
-    full_images = '/pqry/data/117',
+    data = '/pqry/pqry/data',
+    crops = '/pqry/pqry/data/170_cropped',
+    full_images = '/pqry/pqry/data/170',
+    tf_records = 'tfrecords_1slot_170',
 )
 files = dict(
-    json = 'mentis-amneville-one.json',
-    csv = 'occupancy117.csv'
+    json = 'spaceek-maze-one.json',
+    csv = 'telAvivLabels.csv'
 )
 processing = dict(
 	training_shards = 100,
