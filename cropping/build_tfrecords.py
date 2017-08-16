@@ -2,15 +2,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# import urllib3.contrib.pyopenssl
-# import certifi
 import urllib3 as ul3
 
 import config as cfg
-#import download_images as download
 
 import tensorflow as tf
 import numpy as np
+
+import my_log as mylog
 
 from datetime import datetime
 import os
@@ -19,19 +18,14 @@ import sys
 import threading
 import math
 
-tf.app.flags.DEFINE_string('train_directory', cfg.dir['crops'] + '/training',
-                           'Training data directory')
-tf.app.flags.DEFINE_string('validation_directory', cfg.dir['crops'] + '/testing',
-                           'Validation data directory')
-tf.app.flags.DEFINE_string('tfrecords_directory', cfg.dir['data'] + '/' + cfg.dir['tf_records'],
-                           'Data directory for storing tfRecords')
+tf.app.flags.DEFINE_string('crops_dir', os.path.join( cfg.dir['data'], (cfg.dir['full_images'] + '_1slot_crops' + cfg.dir['crops_special_note'])), 'Crops folder')
+tf.app.flags.DEFINE_string('training_dir', os.path.join( cfg.dir['data'], (cfg.dir['full_images'] + '_1slot_crops' + cfg.dir['crops_special_note']), 'training' ), 'Training data folder')
+tf.app.flags.DEFINE_string('testing_dir', os.path.join( cfg.dir['data'], (cfg.dir['full_images'] + '_1slot_crops' + cfg.dir['crops_special_note']), 'testing' ), 'Testing data folder')
+tf.app.flags.DEFINE_string('tfrecords_dir', os.path.join( cfg.dir['data'], ('tfrecords_1slot_cam' + cfg.dir['full_images'] + cfg.dir['records_special_note'])), 'tfRecords folder')
                          
-tf.app.flags.DEFINE_integer('train_shards', cfg.processing['training_shards'],
-                            'Number of shards in training TFRecord files.')
-tf.app.flags.DEFINE_integer('validation_shards', cfg.processing['testing_shards'],
-                            'Number of shards in validation TFRecord files.')
-tf.app.flags.DEFINE_integer('num_threads', cfg.processing['threads'],
-                            'Number of threads to preprocess the images.')
+tf.app.flags.DEFINE_integer('train_shards', cfg.processing['training_shards'], 'Number of shards in training TFRecord files.')
+tf.app.flags.DEFINE_integer('validation_shards', cfg.processing['testing_shards'], 'Number of shards in validation TFRecord files.')
+tf.app.flags.DEFINE_integer('num_threads', cfg.processing['threads'], 'Number of threads to preprocess the images.')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -177,10 +171,10 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
     shard = thread_index * num_shards_per_batch + s
     output_filename = '%s-%.5d-of-%.5d' % (name, shard, num_shards)
     
-    # if not os.path.exists(os.path.join(FLAGS.tfrecords_directory, name)):
-        # os.makedirs(os.path.join(FLAGS.tfrecords_directory, name))
+    # if not os.path.exists(os.path.join(FLAGS.tfrecords_dir, name)):
+        # os.makedirs(os.path.join(FLAGS.tfrecords_dir, name))
         
-    output_file = os.path.join(FLAGS.tfrecords_directory, name, output_filename)
+    output_file = os.path.join(FLAGS.tfrecords_dir, name, output_filename)
     writer = tf.python_io.TFRecordWriter(output_file)
     
     
@@ -325,6 +319,7 @@ def _process_dataset(name, directory, num_shards):
 ######################################################
 def main(unused_argv):
 
+  mylog.logging_general(FLAGS.crops_dir, 'Crops processed into %s' % FLAGS.tfrecords_dir)
   #urllib3.contrib.pyopenssl.inject_into_urllib3()
 
   assert not FLAGS.train_shards % FLAGS.num_threads, (
@@ -333,19 +328,19 @@ def main(unused_argv):
       'Please make the FLAGS.num_threads commensurate with '
       'FLAGS.validation_shards')
       
-  if not os.path.exists(os.path.join(FLAGS.tfrecords_directory, 'train')):
-    os.makedirs(os.path.join(FLAGS.tfrecords_directory, 'train'))
+  if not os.path.exists(os.path.join(FLAGS.tfrecords_dir, 'train')):
+    os.makedirs(os.path.join(FLAGS.tfrecords_dir, 'train'))
     
-  if not os.path.exists(os.path.join(FLAGS.tfrecords_directory, 'test')):
-    os.makedirs(os.path.join(FLAGS.tfrecords_directory, 'test'))
+  if not os.path.exists(os.path.join(FLAGS.tfrecords_dir, 'test')):
+    os.makedirs(os.path.join(FLAGS.tfrecords_dir, 'test'))
       
-  print('Saving results to %s' % FLAGS.tfrecords_directory)
+  print('Saving results to %s' % FLAGS.tfrecords_dir)
 
   #print('Processing %d crops' % cfg.dataset['size'])
   
   # Run it!
-  _process_dataset('test', FLAGS.validation_directory, FLAGS.validation_shards)
-  _process_dataset('train', FLAGS.train_directory, FLAGS.train_shards)
+  _process_dataset('test', FLAGS.testing_dir, FLAGS.validation_shards)
+  _process_dataset('train', FLAGS.training_dir, FLAGS.train_shards)
 
 
 if __name__ == '__main__':
