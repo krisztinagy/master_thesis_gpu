@@ -5,7 +5,7 @@ import datetime
 
 def training_header():
 
-    directory = cfg.directory['results'] + '/' + cfg.model['model_dir']
+    directory = cfg.directory['results'] + '/' + cfg.model['model_import'] + '_' + cfg.model['dataset'] + cfg.model['model_dir_special_note'] 
     if not os.path.exists(directory):
         os.makedirs(directory)
         
@@ -16,8 +16,10 @@ def training_header():
     f.write('Batch size: %d\n' % (cfg.hyperparameters['batch_size']))
     f.write('Image size: %d * %d * %d\n' % (cfg.image['height'], cfg.image['width'], cfg.image['channels']))
     f.write('Model: %s\n' % (cfg.model['model_import']))
+    f.write('Dataset: %s\n' % (cfg.model['dataset']))
     f.write('Ratio of dataset used for training: %s\n' % (cfg.dataset['percentage_to_use']))
     f.write('Loss function: %s\n\n' % (cfg.model['loss_function_import']))
+    f.write('Learning rate: %.5f\n\n' % (cfg.hyperparameters['learning_rate']))
     f.write('Number of epochs: %s\n' % (cfg.hyperparameters['num_epochs']))
     f.write('Started: %s (GMT)\n\n' % str(datetime.datetime.now()))
     f.close()
@@ -36,7 +38,7 @@ def training_header():
     
 def testing_header():
     
-    directory = cfg.directory['results'] + '/' + cfg.model['model_dir']
+    directory = cfg.directory['results'] + '/' + cfg.model['model_import'] + '_' + cfg.model['dataset'] + cfg.model['model_dir_special_note'] 
     if not os.path.exists(directory):
         os.makedirs(directory)
         
@@ -45,7 +47,9 @@ def testing_header():
     f.write('Batch size: %d\n' % (cfg.hyperparameters['batch_size']))
     f.write('Image size: %d * %d * %d\n' % (cfg.image['height'], cfg.image['width'], cfg.image['channels']))
     f.write('Model: %s\n' % (cfg.model['model_import']))
+    f.write('Dataset: %s\n' % (cfg.model['dataset']))
     f.write('Loss function: %s\n\n' % (cfg.model['loss_function_import']))
+    f.write('Shuffling percentage: %.2f\n\n' % (cfg.testing['crop_percentage']))
     f.write('Started: %s (GMT)\n\n' % str(datetime.datetime.now()))
     f.close()
     
@@ -68,19 +72,24 @@ def logging_general(log_dir, file, string):
 def training_footer(log_dir, start_time):
     f = open(log_dir + '/log_train', 'a+')
     f.write('Finished: %s (GMT)\n' % ( str(datetime.datetime.now()) ) )
-    f.write('Took: %s\n' % ( str(start_time - datetime.datetime.now()) ))
+    f.write('Took: %s\n' % ( str(datetime.datetime.now() - start_time) ))
     f.write('\nTraining finished successfully\n')
     f.close
     
 def testing_footer(log_dir, start_time):
     f = open(log_dir + '/log_test', 'a+')
     f.write('Finished: %s (GMT)\n' % ( str(datetime.datetime.now()) ) )
-    f.write('Took: %s\n' % ( str(start_time - datetime.datetime.now()) ))
+    f.write('Took: %s\n' % ( str(datetime.datetime.now() - start_time) ))
     f.write('\nTesting finished successfully\n')
     
     f.close
     
-def loss_log(log_dir, iteration, step_loss, smoothed_loss, smoothed_error):
+def loss_log(log_dir, label, prediction, iteration, step_loss, step_error, smoothed_loss, smoothed_error):
     f = open(log_dir + '/losses', 'a+')
-    f.write('%d,%.6f,%.6f,%.6f\n' % (iteration, step_loss, smoothed_loss, smoothed_error))
+    #f.write('%d,%.6f,%.6f,%.6f\n' % (iteration, step_loss, smoothed_loss, smoothed_error))
+    f.write('L: ')
+    f.write(''.join(map(str, label)))
+    f.write('\nP: ')
+    f.write(''.join(map(str, prediction)))
+    f.write("\nIteration: %d, Loss: %.6f, Absulute error: %.3f, Smoothed loss: %.6f, Smoothed error: %.3f\n" % (iteration, step_loss, step_error, smoothed_loss, smoothed_error))
     f.close
